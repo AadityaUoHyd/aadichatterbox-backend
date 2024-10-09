@@ -1,0 +1,63 @@
+# This configuration is intended for development purpose, it's **your** responsibility to harden it for production
+version: '3.8'
+services:
+  postgres:
+    container_name: aadichatterbox-postgresql
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_USER=aadi
+      - POSTGRES_PASSWORD=aadi
+      - POSTGRES_DB=aadichatterbox
+    volumes:
+      - ~/volumes/aadi/postgresql/:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    restart: unless-stopped
+    networks:
+      - aadichatterbox-network
+
+
+  keycloak:
+    container_name: aadichatterbox-keycloak
+    image: quay.io/keycloak/keycloak:24.0.4
+    command: 'start-dev --import-realm'
+    volumes:
+      - ./keycloak-realm-config:/opt/keycloak/data/import
+      - ./themes:/opt/keycloak/themes
+    environment:
+      - KC_DB=dev-file
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin@123
+      - KC_FEATURES=scripts
+      - KC_HTTP_PORT=9080
+      - KC_HTTPS_PORT=9443
+      - KEYCLOAK_IMPORT=/opt/keycloak/data/import/aadichatterbox.json
+      #- KC_SPI_THEME_DEFAULT='aadichatterbox-theme'
+    ports:
+      - '127.0.0.1:9080:9080'
+      - '127.0.0.1:9443:9443'
+    networks:
+      - aadichatterbox-network
+
+
+  pgadmin-aadichatterbox-postgresql:
+    container_name: aadichatterbox-db-pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aadichatterbox.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./docker/pgadmin/data:/data/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - aadichatterbox-network
+
+
+networks:
+    aadichatterbox-network:
+      driver: bridge
